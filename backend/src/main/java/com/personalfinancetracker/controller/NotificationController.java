@@ -32,13 +32,7 @@ public class NotificationController {
             @RequestParam(required = false) NotificationStatus status,
             @RequestParam(required = false) NotificationType type,
             @PageableDefault(size = 25, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        if (status != null) {
-            return notificationService.listNotifications(principal.getId(), status, pageable);
-        }
-        if (type != null) {
-            return notificationService.listNotifications(principal.getId(), type, pageable);
-        }
-        return notificationService.listNotifications(principal.getId(), pageable);
+        return notificationService.listNotifications(principal.getId(), status, type, pageable);
     }
 
     @GetMapping("/notifications/{id}")

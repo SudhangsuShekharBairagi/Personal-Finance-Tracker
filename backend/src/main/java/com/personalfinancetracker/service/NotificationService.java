@@ -22,21 +22,9 @@ public class NotificationService {
     }
 
     @Transactional(readOnly = true)
-    public Page<BudgetNotificationResponse> listNotifications(Long userId, Pageable pageable) {
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
-                .map(BudgetNotificationResponse::from);
-    }
-
-    @Transactional(readOnly = true)
     public Page<BudgetNotificationResponse> listNotifications(Long userId, NotificationStatus status,
-            Pageable pageable) {
-        return notificationRepository.findByUserIdAndStatusOrderByCreatedAtDesc(userId, status, pageable)
-                .map(BudgetNotificationResponse::from);
-    }
-
-    @Transactional(readOnly = true)
-    public Page<BudgetNotificationResponse> listNotifications(Long userId, NotificationType type, Pageable pageable) {
-        return notificationRepository.findByUserIdAndNotificationTypeOrderByCreatedAtDesc(userId, type, pageable)
+            NotificationType type, Pageable pageable) {
+        return notificationRepository.findVisibleByUserIdAndOptionalFilters(userId, status, type, pageable)
                 .map(BudgetNotificationResponse::from);
     }
 

@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Locale;
+import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,16 +21,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.personalfinancetracker.dto.BudgetRequest;
 import com.personalfinancetracker.dto.BudgetResponse;
 import com.personalfinancetracker.entity.AppUser;
+import com.personalfinancetracker.entity.BudgetNotification;
 import com.personalfinancetracker.entity.BudgetStatus;
+import com.personalfinancetracker.entity.NotificationType;
 import com.personalfinancetracker.entity.Transaction;
 import com.personalfinancetracker.entity.TransactionType;
 import com.personalfinancetracker.exception.ApiException;
 import com.personalfinancetracker.repository.AppUserRepository;
+import com.personalfinancetracker.repository.BudgetNotificationRepository;
 import com.personalfinancetracker.repository.TransactionRepository;
 import com.personalfinancetracker.security.AppUserPrincipal;
 
@@ -43,7 +47,6 @@ import tools.jackson.databind.ObjectMapper;
         "app.cookie-secure=false"
 })
 @AutoConfigureMockMvc
-@Transactional
 class BudgetServiceIntegrationTest {
     @Autowired
     private BudgetService budgetService;
@@ -53,6 +56,9 @@ class BudgetServiceIntegrationTest {
 
     @Autowired
     private TransactionRepository transactionRepository;
+
+    @Autowired
+    private BudgetNotificationRepository notificationRepository;
 
     @Autowired
     private MockMvc mockMvc;
@@ -65,8 +71,9 @@ class BudgetServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        owner = userRepository.saveAndFlush(verifiedUser("owner@example.test"));
-        anotherUser = userRepository.saveAndFlush(verifiedUser("another@example.test"));
+        String suffix = UUID.randomUUID().toString();
+        owner = userRepository.saveAndFlush(verifiedUser("owner-" + suffix + "@example.test"));
+        anotherUser = userRepository.saveAndFlush(verifiedUser("another-" + suffix + "@example.test"));
     }
 
     @Test
@@ -107,6 +114,27 @@ class BudgetServiceIntegrationTest {
         assertBudgetStatus("99.99", BudgetStatus.WARNING, "99.99");
         assertBudgetStatus("100.00", BudgetStatus.EXCEEDED, "100.00");
         assertBudgetStatus("125.00", BudgetStatus.EXCEEDED, "125.00");
+    }
+
+    @Test
+    void createsWarningNotificationWhenBudgetIsCreatedOrUpdatedIntoWarningState() {
+        saveTransaction(owner, "Food", "80.00", TransactionType.EXPENSE, "2026-10-15");
+        BudgetResponse foodBudget = budgetService.createBudget(
+                owner.getId(), budget(2026, 10, "Food", "100.00"));
+        BudgetNotification foodNotification = notificationFor("FOOD");
+        assertEquals(BudgetStatus.WARNING, foodBudget.status());
+        assertEquals(NotificationType.WARNING, foodNotification.getNotificationType());
+
+        saveTransaction(owner, "Transport", "80.00", TransactionType.EXPENSE, "2026-10-15");
+        BudgetResponse transportBudget = budgetService.createBudget(
+                owner.getId(), budget(2026, 10, "Transport", "200.00"));
+        assertEquals(BudgetStatus.NORMAL, transportBudget.status());
+
+        BudgetResponse updatedBudget = budgetService.updateBudget(
+                owner.getId(), transportBudget.id(), budget(2026, 10, "Transport", "100.00"));
+        BudgetNotification transportNotification = notificationFor("TRANSPORT");
+        assertEquals(BudgetStatus.WARNING, updatedBudget.status());
+        assertEquals(NotificationType.WARNING, transportNotification.getNotificationType());
     }
 
     @Test
@@ -232,6 +260,13 @@ class BudgetServiceIntegrationTest {
             String date) {
         return transactionRepository.saveAndFlush(new Transaction(
                 user, "Test transaction", new BigDecimal(amount), type, category, LocalDate.parse(date)));
+    }
+
+    private BudgetNotification notificationFor(String categoryKey) {
+        return notificationRepository.findByUserIdAndIdempotencyKey(
+                owner.getId(), "budget:" + owner.getId() + ":2026:10:"
+                        + categoryKey.toLowerCase(Locale.ROOT) + ":WARNING:100.00")
+                .orElseThrow();
     }
 
     private AppUser verifiedUser(String email) {

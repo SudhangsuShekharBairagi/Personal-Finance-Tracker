@@ -77,6 +77,9 @@ public class BudgetNotification {
     @Column(name = "last_attempt_at")
     private Instant lastAttemptAt;
 
+    @Column(name = "next_attempt_at")
+    private Instant nextAttemptAt;
+
     @Column(name = "sent_at")
     private Instant sentAt;
 
@@ -191,6 +194,10 @@ public class BudgetNotification {
         return lastAttemptAt;
     }
 
+    public Instant getNextAttemptAt() {
+        return nextAttemptAt;
+    }
+
     public Instant getSentAt() {
         return sentAt;
     }
@@ -207,11 +214,17 @@ public class BudgetNotification {
         return updatedAt;
     }
 
-    public void markRetrying(String failureReason) {
+    public void markAttemptStarted(Instant retryLeaseUntil) {
         this.status = NotificationStatus.RETRYING;
-        this.failureReason = failureReason;
         this.lastAttemptAt = Instant.now();
         this.attemptCount++;
+        this.nextAttemptAt = retryLeaseUntil;
+    }
+
+    public void markRetrying(String failureReason, Instant nextAttemptAt) {
+        this.status = NotificationStatus.RETRYING;
+        this.failureReason = failureReason;
+        this.nextAttemptAt = nextAttemptAt;
     }
 
     public void markSent() {
@@ -219,18 +232,19 @@ public class BudgetNotification {
         this.sentAt = Instant.now();
         this.lastAttemptAt = sentAt;
         this.failureReason = null;
+        this.nextAttemptAt = null;
     }
 
     public void markFailed(String failureReason) {
         this.status = NotificationStatus.FAILED;
         this.failureReason = failureReason;
-        this.lastAttemptAt = Instant.now();
-        this.attemptCount++;
+        this.nextAttemptAt = null;
     }
 
     public void markSkipped(String failureReason) {
         this.status = NotificationStatus.SKIPPED;
         this.failureReason = failureReason;
         this.lastAttemptAt = Instant.now();
+        this.nextAttemptAt = null;
     }
 }

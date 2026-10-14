@@ -3,6 +3,8 @@ package com.personalfinancetracker.service;
 import java.math.BigDecimal;
 import java.util.Locale;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,8 @@ import com.personalfinancetracker.repository.TransactionRepository;
 
 @Service
 public class TransactionService {
+    private static final Logger logger = LoggerFactory.getLogger(TransactionService.class);
+
     private final TransactionRepository transactionRepository;
     private final AppUserRepository appUserRepository;
     private final BudgetAlertService budgetAlertService;
@@ -119,7 +123,12 @@ public class TransactionService {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    budgetAlertService.evaluateBudgetsForUser(userId);
+                    try {
+                        budgetAlertService.evaluateBudgetsForUser(userId);
+                    } catch (RuntimeException exception) {
+                        logger.warn("Budget alert evaluation failed for user id {}: {}",
+                                userId, exception.getClass().getSimpleName());
+                    }
                 }
             });
         }
