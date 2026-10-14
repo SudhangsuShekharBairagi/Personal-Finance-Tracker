@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, Info, LoaderCircle } from "lucide-react";
+import { ArrowRight, LoaderCircle } from "lucide-react";
 import Button from "../../../components/Button.jsx";
 import Field, { controlClassName } from "../../../components/Field.jsx";
 import { useAuth } from "../../../hooks/useAuth.js";

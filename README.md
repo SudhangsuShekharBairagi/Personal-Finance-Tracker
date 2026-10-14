@@ -136,7 +136,7 @@ Budget limits must be positive and fit `DECIMAL(19,2)` (maximum `999999999999999
 }
 ```
 
-The budget response includes `id`, `year`, `month`, `category`, `budgetLimit`, `actualSpending`, `remainingAmount`, `percentageUsed`, and `status` (`NORMAL`, `WARNING`, or `EXCEEDED`). Monetary response fields are decimal strings, preserving every cent when JavaScript displays values near the database maximum. Percentage is rounded to two decimal places with `HALF_UP`; status comparisons use exact decimals: below 80% is `NORMAL`, 80% to below 100% is `WARNING`, and 100% or more is `EXCEEDED`. Remaining amounts may be negative. Full rules and matching behavior are in [docs/phase-5-budget-rules.md](docs/phase-5-budget-rules.md).
+The budget response includes `id`, `year`, `month`, `category`, `budgetLimit`, `actualSpending`, `remainingAmount`, `percentageUsed`, and `status` (`NORMAL`, `WARNING`, or `EXCEEDED`). Monetary response fields are decimal strings, preserving every cent when JavaScript displays values near the database maximum. Percentage is rounded to two decimal places with `HALF_UP`; status comparisons use exact decimals: below 80% is `NORMAL`, 80% to below 100% is `WARNING`, and 100% or more is `EXCEEDED`. Reaching either threshold creates a persisted budget notification; pending notifications are also delivered by email when SMTP is configured. Remaining amounts may be negative. Full rules and matching behavior are in [docs/phase-5-budget-rules.md](docs/phase-5-budget-rules.md).
 
 ### Manual Budget Verification
 
@@ -200,4 +200,4 @@ mvn -f backend/pom.xml spring-boot:run
 
 The included Maven wrapper can be used instead: `backend\mvnw.cmd -f backend/pom.xml test` and `backend\mvnw.cmd -f backend/pom.xml spring-boot:run`.
 
-Backend tests use in-memory H2 databases and do not need MySQL or SMTP. The local API itself still needs a reachable MySQL database and credentials. Dashboard analytics remain client-side calculations over saved transactions, and the dashboard budget preview still uses example limits. Email budget alerts are not implemented. No automated frontend test script is configured; use the documented lint and production build checks.
+Backend tests use in-memory H2 databases and do not need MySQL or SMTP. The local API itself still needs a reachable MySQL database and credentials. Dashboard analytics remain client-side calculations over saved transactions, and the dashboard budget preview still uses example limits. No automated frontend test script is configured; use the documented lint and production build checks.
